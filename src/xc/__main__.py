@@ -1,28 +1,75 @@
 import argparse
 import sys
 from urllib import request, parse
+from urllib.request import urlretrieve
 import json
+from types import SimpleNamespace
+import os
+from urllib.parse import urlparse
+
+def MakeJSON(entity):
+    return json.dumps(entity, default=lambda o: o.__dict__, 
+            sort_keys=True, indent=4)
 
 def DownloadContent(download_location, xuid, token, media_type):
-	request_string = f'{{"max":500,"query":"OwnerXuid eq {xuid}","skip":0}}'
-	
 	if media_type.casefold() == 's':
-		DownloadScreenshots(download_location, request_string, token)
+		DownloadData('screenshots', xuid, download_location, token)
 	elif media_type.casefold() == 'v':
-		DownloadClips(download_location, request_string, token)
+		DownloadData('gameclips', xuid, download_location, token)
 	else:
-		DownloadScreenshots(download_location, request_string, token)
-		DownloadClips(download_location, request_string, token)
+		DownloadData('screenshots', xuid, download_location, token)
+		DownloadData('gameclips', xuid, download_location, token)
 
-def DownloadScreenshots(download_location, request_string, token):
-	print('Downloading screenshots...')
-	print(f'Query: {request_string}')
-	screenshot_request = request.Request('https://mediahub.xboxlive.com/screenshots/search', data = request_string.encode("utf-8"), headers = {'Authorization': token, 'Content-Type': 'application/json'})
+def DownloadData(endpoint, xuid, download_location, token, continuation_token = None):
+	print(f'Downloading from the {endpoint} endpoint...')
+
+	request_string = ''
+	if not continuation_token:
+		request_string = f'{{"max":20,"query":"OwnerXuid eq {xuid}","skip":0}}'
+	else:
+		request_string = f'{{"max":20,"query":"OwnerXuid eq {xuid}","skip":0, "continuationToken": "{continuation_token}"}}'
+
+	screenshot_request = request.Request(f'https://mediahub.xboxlive.com/{endpoint}/search', data = request_string.encode("utf-8"), headers = {'Authorization': token, 'Content-Type': 'application/json'})
+
 	response = request.urlopen(screenshot_request)
 
-def DownloadClips(download_location, request_string, token):
-	screenshot_request = request.Request('https://mediahub.xboxlive.com/gameclips/search', data = request_string.encode("utf-8"), headers = {'Authorization': token, 'Content-Type': 'application/json'})
-	response = request.urlopen(screenshot_request)
+	if response.getcode() == 200:
+		print ('Successfully got content collection.')
+		content_entities = json.loads(response.read(), object_hook=lambda d: SimpleNamespace(**d))
+
+		for entity in content_entities.values:
+			print(f'Currently downloading content with ID: {entity.contentId}')
+			print('Getting metadata...')
+			metadata_path = os.path.join(download_location, entity.contentId + ".json")
+			with open(metadata_path, 'w') as metadata_file:
+			    metadata_file.write(MakeJSON(entity))
+			print(f'Metadata acquisition successful.')
+
+			locator = next((x for x in entity.contentLocators if x.locatorType.casefold() == 'download'))
+			locator_ts = next((x for x in entity.contentLocators if x.locatorType.casefold() == 'thumbnail_small'))
+			locator_tl = next((x for x in entity.contentLocators if x.locatorType.casefold() == 'thumbnail_large'))
+
+			if locator:
+				print(f'Attempting to download content at {locator.uri}...')
+				media_path = os.path.join(download_location, os.path.basename(urlparse(locator.uri).path))
+				urlretrieve(locator.uri, media_path)
+
+			if locator_ts:
+				print(f'Attempting to download small thumbnail at {locator_ts.uri}...')
+				media_path = os.path.join(download_location, 'small_' + os.path.basename(urlparse(locator_ts.uri).path))
+				urlretrieve(locator_ts.uri, media_path)
+
+			if locator_tl:
+				print(f'Attempting to download large thumbnail at {locator_tl.uri}...')
+				media_path = os.path.join(download_location, 'large_' + os.path.basename(urlparse(locator_tl.uri).path))
+				urlretrieve(locator_tl.uri, media_path)
+		try:
+			DownloadData(endpoint, xuid, download_location, token, content_entities.continuationToken)
+		except AttributeError:
+			print('No more continuation tokens. Assuming media of requested class is downloaded completely.')
+	else:
+		print('Could not get a successful response from the Xbox Live service.')
+
 
 media_type = 'A'
 
