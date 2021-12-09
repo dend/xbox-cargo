@@ -72,12 +72,11 @@ def DownloadData(endpoint, xuid, download_location, token, continuation_token = 
 	if not local_ids == None:
 		for local_id in local_ids:
 			print(f'Currently downloading content with ID: {local_id}')
-			print('Getting metadata...')
-			metadata_path = os.path.join(download_location, local_id + ".json")
 
 			entity = GetContentEntity(endpoint, xuid, local_id, token).values[0]
 
 			if entity:
+				metadata_path = os.path.join(download_location, entity.contentId + ".json")
 				with open(metadata_path, 'w') as metadata_file:
 				    metadata_file.write(MakeJSON(entity))
 				print(f'Metadata acquisition successful.')
