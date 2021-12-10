@@ -6,6 +6,7 @@ import json
 from types import SimpleNamespace
 import os
 from urllib.parse import urlparse
+import socket
 
 def MakeJSON(entity):
     return json.dumps(entity, default=lambda o: o.__dict__, 
@@ -88,17 +89,26 @@ def DownloadData(endpoint, xuid, download_location, token, continuation_token = 
 				if locator:
 					print(f'Attempting to download content at {locator.uri}...')
 					media_path = os.path.join(download_location, os.path.basename(urlparse(locator.uri).path))
-					urlretrieve(locator.uri, media_path)
+					try:
+						urlretrieve(locator.uri, media_path)
+					except:
+						print(f'Could not download content at {locator.uri}.')
 
 				if locator_ts:
 					print(f'Attempting to download small thumbnail at {locator_ts.uri}...')
 					media_path = os.path.join(download_location, 'small_' + os.path.basename(urlparse(locator_ts.uri).path))
-					urlretrieve(locator_ts.uri, media_path)
+					try:
+						urlretrieve(locator_ts.uri, media_path)
+					except:
+						print(f'Could not download small thumbnail at {locator_ts.uri}.')
 
 				if locator_tl:
 					print(f'Attempting to download large thumbnail at {locator_tl.uri}...')
 					media_path = os.path.join(download_location, 'large_' + os.path.basename(urlparse(locator_tl.uri).path))
-					urlretrieve(locator_tl.uri, media_path)
+					try:
+						urlretrieve(locator_tl.uri, media_path)
+					except:
+						print(f'Could not download large thumbnail at {locator_tl.uri}.')
 			else:
 				print (f'Could not download entity: {local_id}')
 		try:
@@ -108,6 +118,7 @@ def DownloadData(endpoint, xuid, download_location, token, continuation_token = 
 	else:
 		print('No content entities to process.')
 
+socket.setdefaulttimeout(300)
 
 media_type = 'A'
 
