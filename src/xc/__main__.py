@@ -118,6 +118,29 @@ def DownloadData(endpoint, xuid, download_location, token, continuation_token = 
 	else:
 		print('No content entities to process.')
 
+def SendDeleteRequest(token, xuid, endpoint, content_id):
+	request_string = '{"headers": {"Accept": "application/json", "X-XBL-Contract-Version": "2"}}'
+
+	delete_request = request.Request(f'https://mediahub.xboxlive.com/{endpoint}/{content_id}', data = request_string.encode("utf-8"), headers = {'Authorization': token, 'Content-Type': 'application/json'})
+	delete_request.get_method = lambda: 'DELETE' # Yikes, but gets the job done for now.
+	response = delete_request.urlopen(screenshot_request)
+
+	if response.getcode() == 200:
+		return true
+	else:
+		return false
+
+def DeleteAllMedia(token, xuid, endpoint):
+	content_entities = GetContentEntities(xuid, endpoint, token)
+
+	while len(content_entities.values) > 0:
+		for entity in content_entities.values:
+			success = SendDeleteRequest(token, xuid, endpoint, entity.contentId)
+			if success:
+				print(f'Successfully deleted {entity.contentId}')
+			else:
+				print(f'Could not delete {entity.contentId}')
+
 socket.setdefaulttimeout(300)
 
 media_type = 'A'
@@ -126,7 +149,6 @@ parser = argparse.ArgumentParser(description = 'Download Xbox Live screenshots a
 
 subparsers = parser.add_subparsers(help='', dest='command')
 
-# create the parser for the "command_a" command
 parser_downloader = subparsers.add_parser('download', help='Download media from the Xbox network.')
 
 parser_downloader.add_argument('--token',
@@ -149,7 +171,6 @@ parser_downloader.add_argument('--media',
                        type=str,
                        help='Type of media to be downloaded. Use S for screenshots, V, for video, or A for all.')
 
-# create the parser for the "command_b" command
 parser_cleaner = subparsers.add_parser('clean', help='Clean media from an Xbox network account.')
 
 parser_cleaner.add_argument('--mode', choices=['all', 'select'], help='Determines the mode of cleanup to be performed.')
@@ -158,6 +179,11 @@ parser_cleaner.add_argument('--token',
                        metavar='token',
                        type=str,
                        help='XBL 3.0 authorization token.')
+
+parser_cleaner.add_argument('--xuid',
+                       metavar='xuid',
+                       type=str,
+                       help='Xbox Live numeric user identifier. Optional for selective cleanup.')
 
 
 args = parser.parse_args()
@@ -193,7 +219,12 @@ elif args.command.casefold() == 'clean':
 
 	if args.mode.casefold() == 'all':
 		print('Cleanup mode: ALL')
-		DeleteAllXboxMedia(args.token, )
+		if not args.xuid:
+			print('You need to specify a XUID in order to get screenshots and video clips.')
+			sys.exit()
+
+		DeleteAllMedia(args.token, args.xuid, 'screenshots')
+		DeleteAllMedia(args.token, args.xuid, 'gameclips')
 else:
 	print('Unknown command.')
 
