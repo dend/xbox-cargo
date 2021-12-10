@@ -124,46 +124,77 @@ media_type = 'A'
 
 parser = argparse.ArgumentParser(description = 'Download Xbox Live screenshots and video clips.')
 
-parser.add_argument('DownloadLocation',
-                       metavar='dl',
-                       type=str,
-                       help='Folder where content needs to be downloaded.')
+subparsers = parser.add_subparsers(help='', dest='command')
 
-parser.add_argument('XUID',
-                       metavar='xuid',
-                       type=str,
-                       help='Xbox Live numeric user identifier.')
+# create the parser for the "command_a" command
+parser_downloader = subparsers.add_parser('download', help='Download media from the Xbox network.')
 
-parser.add_argument('Token',
+parser_downloader.add_argument('--token',
                        metavar='token',
                        type=str,
                        help='XBL 3.0 authorization token.')
 
-parser.add_argument('Media',
+parser_downloader.add_argument('--download-location',
+                       metavar='dl',
+                       type=str,
+                       help='Folder where content needs to be downloaded.')
+
+parser_downloader.add_argument('--xuid',
+                       metavar='xuid',
+                       type=str,
+                       help='Xbox Live numeric user identifier.')
+
+parser_downloader.add_argument('--media',
                        metavar='media',
                        type=str,
                        help='Type of media to be downloaded. Use S for screenshots, V, for video, or A for all.')
 
+# create the parser for the "command_b" command
+parser_cleaner = subparsers.add_parser('clean', help='Clean media from an Xbox network account.')
+
+parser_cleaner.add_argument('--mode', choices=['all', 'select'], help='Determines the mode of cleanup to be performed.')
+
+parser_cleaner.add_argument('--token',
+                       metavar='token',
+                       type=str,
+                       help='XBL 3.0 authorization token.')
+
+
 args = parser.parse_args()
 
-if not args.DownloadLocation:
-	print('You need to specify a download location.')
-	sys.exit()
-
-if not args.XUID:
-	print('You need to specify a XUID in order to get screenshots and video clips.')
-	sys.exit()
-
-if not args.Token:
+if not args.token:
 	print('You need to specify a XBL 3.0 token in order to get screenshots and video clips.')
 	sys.exit()
 
-if not args.Media:
-	print('No media parameter specified. Assumed all media needs to be downloaded.')
-else:
-	media_type = args.Media
+if args.command.casefold() == 'download':
+	print('User chose to download the stored Xbox Live media.')
 
-DownloadContent(args.DownloadLocation, args.XUID, args.Token, media_type)
-print ('Download complete.')
+	if not args.download_location:
+		print('You need to specify a download location.')
+		sys.exit()
+
+	if not args.xuid:
+		print('You need to specify a XUID in order to get screenshots and video clips.')
+		sys.exit()
+
+	if not args.media:
+		print('No media parameter specified. Assumed all media needs to be downloaded.')
+	else:
+		media_type = args.Media
+
+	DownloadContent(args.DownloadLocation, args.XUID, args.Token, media_type)
+	print ('Download complete.')
+elif args.command.casefold() == 'clean':
+	print('User chose to clean the stored Xbox Live media.')
+
+	if not args.mode:
+		print('You need to specify a cleanup mode before proceeding.')
+		sys.exit()
+
+	if args.mode.casefold() == 'all':
+		print('Cleanup mode: ALL')
+		DeleteAllXboxMedia(args.token, )
+else:
+	print('Unknown command.')
 
 
