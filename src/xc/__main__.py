@@ -21,7 +21,7 @@ def DownloadContent(download_location, xuid, token, media_type):
 		DownloadData('screenshots', xuid, download_location, token)
 		DownloadData('gameclips', xuid, download_location, token)
 
-def GetContentEntities(xuid, endpoint, token, continuation_token):
+def GetContentEntities(xuid, endpoint, token, continuation_token = None):
 	request_string = ''
 	if not continuation_token:
 		request_string = f'{{"max":500,"query":"OwnerXuid eq {xuid}","skip":0}}'
@@ -123,12 +123,14 @@ def SendDeleteRequest(token, xuid, endpoint, content_id):
 
 	delete_request = request.Request(f'https://mediahub.xboxlive.com/{endpoint}/{content_id}', data = request_string.encode("utf-8"), headers = {'Authorization': token, 'Content-Type': 'application/json'})
 	delete_request.get_method = lambda: 'DELETE' # Yikes, but gets the job done for now.
-	response = delete_request.urlopen(screenshot_request)
+	response = request.urlopen(delete_request)
 
-	if response.getcode() == 200:
-		return true
+	response_code = response.getcode()
+	acceptable_codes = [200, 202]
+	if response_code in acceptable_codes:
+		return True
 	else:
-		return false
+		return False
 
 def DeleteAllMedia(token, xuid, endpoint):
 	content_entities = GetContentEntities(xuid, endpoint, token)
@@ -140,6 +142,8 @@ def DeleteAllMedia(token, xuid, endpoint):
 				print(f'Successfully deleted {entity.contentId}')
 			else:
 				print(f'Could not delete {entity.contentId}')
+
+		content_entities = GetContentEntities(xuid, endpoint, token)
 
 socket.setdefaulttimeout(300)
 
