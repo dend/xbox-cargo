@@ -171,8 +171,7 @@ parser_downloader.add_argument('--xuid',
                        help='Xbox Live numeric user identifier.')
 
 parser_downloader.add_argument('--media',
-                       metavar='media',
-                       type=str,
+                       choices=['s', 'v', 'a'],
                        help='Type of media to be downloaded. Use S for screenshots, V, for video, or A for all.')
 
 parser_cleaner = subparsers.add_parser('clean', help='Clean media from an Xbox network account.')
