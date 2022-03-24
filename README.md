@@ -1,4 +1,4 @@
-# xbox-cargo
+# xbox-cargo [![Stand With Ukraine](https://raw.githubusercontent.com/vshymanskyy/StandWithUkraine/main/badges/StandWithUkraine.svg)](https://den.dev/ukraine)
 
 A command-line tool designed to help you manage your Xbox Live content. It started from my aspiration to [back up my Xbox Live media content](https://den.dev/blog/xbox-live-download-captures/) locally without involving OneDrive or relying on one-by-one media selection through the app.
 
